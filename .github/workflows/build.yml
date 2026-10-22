@@ -35,7 +35,7 @@ jobs:
 
       # ── Install & Build Web App ────────────────────────────────────────────
       - name: Install dependencies
-        run: npm install
+        run: npm install --prefix mobile
 
       - name: Build web bundle
         working-directory: mobile
