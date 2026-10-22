@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: mobile/package-lock.json
+          cache-dependency-path: package-lock.json
 
       # ── Java ──────────────────────────────────────────────────────────────
       - name: Setup Java
@@ -38,9 +38,8 @@ jobs:
         uses: android-actions/setup-android@v3
 
       # ── Install & Build Web App ────────────────────────────────────────────
-      - name: Install mobile dependencies
-        working-directory: mobile
-        run: npm ci
+      - name: Install dependencies
+        run: npm install
 
       - name: Build web bundle
         working-directory: mobile
@@ -52,6 +51,9 @@ jobs:
         run: npx cap sync android
 
       # ── Gradle Build (Debug APK) ───────────────────────────────────────────
+      - name: Make gradlew executable
+        run: chmod +x mobile/android/gradlew
+
       - name: Build Debug APK
         working-directory: mobile/android
         run: ./gradlew assembleDebug --no-daemon
@@ -122,11 +124,10 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: desktop
-        run: npm ci
+        run: npm install
 
       - name: Build Windows installer
         working-directory: desktop
@@ -150,14 +151,13 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install system dependencies
         run: sudo apt-get install -y libasound2-dev
 
       - name: Install dependencies
-        working-directory: desktop
-        run: npm ci
+        run: npm install
 
       - name: Build Linux AppImage
         working-directory: desktop
@@ -181,11 +181,10 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: desktop
-        run: npm ci
+        run: npm install
 
       - name: Build macOS DMG
         working-directory: desktop
