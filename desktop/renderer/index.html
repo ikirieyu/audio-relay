@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AudioRelay – PC ↔ Android Audio Bridge</title>
+  <meta name="description" content="Low-latency audio streaming between PC and Android via WiFi, USB, or Bluetooth" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ── Title Bar ────────────────────────────────────────────────────── -->
+  <div class="titlebar" id="titlebar">
+    <div class="titlebar-left">
+      <div class="logo-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M12 3C9.5 3 7.5 5 7.5 7.5V12.5C7.5 15 9.5 17 12 17C14.5 17 16.5 15 16.5 12.5V7.5C16.5 5 14.5 3 12 3Z" stroke="currentColor" stroke-width="2"/>
+          <path d="M5 11C5 11 5 16 12 16C19 16 19 11 19 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="12" y1="16" x2="12" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="9" y1="21" x2="15" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="app-name">AudioRelay</span>
+      <span class="app-version" id="app-version">v1.0</span>
+    </div>
+    <div class="titlebar-drag"></div>
+    <div class="titlebar-controls">
+      <button class="tb-btn" id="btn-minimize" title="Minimize">&#x2013;</button>
+      <button class="tb-btn" id="btn-maximize" title="Maximize">&#x25A1;</button>
+      <button class="tb-btn tb-close" id="btn-close" title="Close">&#x2715;</button>
+    </div>
+  </div>
+
+  <!-- ── Main Layout ────────────────────────────────────────────────────── -->
+  <div class="app-layout">
+
+    <!-- ── Sidebar ────────────────────────────────────────────────────── -->
+    <nav class="sidebar">
+      <button class="nav-item active" data-tab="stream" id="nav-stream">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+        </svg>
+        <span>Stream</span>
+      </button>
+      <button class="nav-item" data-tab="devices" id="nav-devices">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+        <span>Devices</span>
+      </button>
+      <button class="nav-item" data-tab="quality" id="nav-quality">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        <span>Quality</span>
+      </button>
+      <button class="nav-item" data-tab="connections" id="nav-connections">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/>
+        </svg>
+        <span>Connections</span>
+      </button>
+      <button class="nav-item" data-tab="stats" id="nav-stats">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        <span>Stats</span>
+      </button>
+    </nav>
+
+    <!-- ── Content Area ─────────────────────────────────────────────── -->
+    <main class="content">
+
+      <!-- ═══ TAB: Stream ════════════════════════════════════════════ -->
+      <section class="tab-panel active" id="tab-stream">
+        <div class="panel-header">
+          <h1>Audio Stream</h1>
+          <p>Connect and relay audio between PC and Android</p>
+        </div>
+
+        <!-- Server Info Card -->
+        <div class="card glass">
+          <div class="card-header">
+            <span class="card-title">PC Server</span>
+            <div class="status-badge" id="server-status">
+              <span class="pulse-dot"></span>
+              <span>Listening</span>
+            </div>
+          </div>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">IP Address</span>
+              <code class="info-value" id="server-ip">–</code>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Port</span>
+              <code class="info-value" id="server-port">7372</code>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Hostname</span>
+              <code class="info-value" id="server-name">–</code>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Connected Clients</span>
+              <code class="info-value" id="client-count">0</code>
+            </div>
+          </div>
+          <!-- QR Code hint -->
+          <div class="qr-hint">
+            <svg class="qr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/><rect x="5" y="5" width="3" height="3"/>
+              <rect x="16" y="5" width="3" height="3"/><rect x="5" y="16" width="3" height="3"/>
+              <path d="M14 14h3v3h-3z"/><path d="M17 17h4"/><path d="M17 21v-4"/>
+            </svg>
+            <span>Open AudioRelay on Android → Auto-discover or enter IP above</span>
+          </div>
+        </div>
+
+        <!-- Connected Clients -->
+        <div class="card" id="clients-card">
+          <div class="card-header">
+            <span class="card-title">Connected Clients</span>
+          </div>
+          <div id="clients-list" class="clients-list">
+            <div class="empty-state">
+              <div class="empty-icon">📱</div>
+              <p>No Android devices connected yet</p>
+              <small>Open AudioRelay on your Android device</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stream Controls -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Stream Direction</span>
+          </div>
+          <div class="direction-selector">
+            <label class="direction-option">
+              <input type="radio" name="direction" value="pc_to_android" />
+              <div class="direction-card">
+                <span class="dir-icon">🖥️ → 📱</span>
+                <strong>PC → Android</strong>
+                <small>Play PC audio on phone</small>
+              </div>
+            </label>
+            <label class="direction-option">
+              <input type="radio" name="direction" value="bidirectional" checked />
+              <div class="direction-card selected">
+                <span class="dir-icon">🖥️ ⇄ 📱</span>
+                <strong>Bidirectional</strong>
+                <small>Full duplex audio</small>
+              </div>
+            </label>
+            <label class="direction-option">
+              <input type="radio" name="direction" value="android_to_pc" />
+              <div class="direction-card">
+                <span class="dir-icon">📱 → 🖥️</span>
+                <strong>Android → PC</strong>
+                <small>Use phone as mic</small>
+              </div>
+            </label>
+          </div>
+
+          <div class="stream-actions">
+            <button class="btn btn-primary btn-large" id="btn-stream-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
+              </svg>
+              <span id="stream-btn-text">Start Streaming</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Waveform Visualizer -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Audio Level</span>
+            <span class="badge" id="stream-badge">Idle</span>
+          </div>
+          <div class="visualizer-container">
+            <canvas id="waveform-canvas" width="800" height="80"></canvas>
+          </div>
+          <div class="level-meters">
+            <div class="meter-row">
+              <span class="meter-label">PC Out</span>
+              <div class="level-bar-track">
+                <div class="level-bar" id="level-out" style="width:0%"></div>
+              </div>
+              <span class="meter-value" id="level-out-db">–∞</span>
+            </div>
+            <div class="meter-row">
+              <span class="meter-label">PC In</span>
+              <div class="level-bar-track">
+                <div class="level-bar level-bar-in" id="level-in" style="width:0%"></div>
+              </div>
+              <span class="meter-value" id="level-in-db">–∞</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ TAB: Devices ══════════════════════════════════════════ -->
+      <section class="tab-panel" id="tab-devices">
+        <div class="panel-header">
+          <h2>Audio Devices</h2>
+          <p>Select input and output devices for PC audio</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Input (Microphone / Loopback)</span>
+          </div>
+          <select class="device-select" id="input-device-select">
+            <option value="-1">Default Input</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Output (Speaker / Headphones)</span>
+          </div>
+          <select class="device-select" id="output-device-select">
+            <option value="-1">Default Output</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Volume & Mix</span>
+          </div>
+          <div class="slider-row">
+            <label>Output Volume</label>
+            <input type="range" id="vol-out" min="0" max="200" value="100" class="slider" />
+            <span id="vol-out-val">100%</span>
+          </div>
+          <div class="slider-row">
+            <label>Input Gain</label>
+            <input type="range" id="vol-in" min="0" max="200" value="100" class="slider" />
+            <span id="vol-in-val">100%</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ TAB: Quality ══════════════════════════════════════════ -->
+      <section class="tab-panel" id="tab-quality">
+        <div class="panel-header">
+          <h2>Audio Quality</h2>
+          <p>Higher quality = higher latency. Choose based on your use case.</p>
+        </div>
+
+        <div class="quality-grid">
+          <div class="quality-card" data-preset="ULTRA_LOW_LATENCY">
+            <div class="quality-badge latency-ultra">⚡ Ultra Low</div>
+            <h3>Ultra Low Latency</h3>
+            <p>Best for real-time monitoring and live performance</p>
+            <div class="quality-specs">
+              <span>16 kHz · Mono · 64 kbps</span>
+              <span>~20ms buffer</span>
+            </div>
+            <div class="latency-bar"><div style="width:15%"></div></div>
+          </div>
+
+          <div class="quality-card active" data-preset="LOW_LATENCY">
+            <div class="quality-badge latency-low">🚀 Low</div>
+            <h3>Low Latency</h3>
+            <p>Gaming, calls, real-time use. Default setting.</p>
+            <div class="quality-specs">
+              <span>44.1 kHz · Stereo · 96 kbps</span>
+              <span>~60ms buffer</span>
+            </div>
+            <div class="latency-bar"><div style="width:30%"></div></div>
+          </div>
+
+          <div class="quality-card" data-preset="BALANCED">
+            <div class="quality-badge latency-balanced">⚖️ Balanced</div>
+            <h3>Balanced</h3>
+            <p>Good quality with acceptable latency for most tasks</p>
+            <div class="quality-specs">
+              <span>44.1 kHz · Stereo · 128 kbps</span>
+              <span>~120ms buffer</span>
+            </div>
+            <div class="latency-bar"><div style="width:50%"></div></div>
+          </div>
+
+          <div class="quality-card" data-preset="HIGH_QUALITY">
+            <div class="quality-badge latency-high">🎵 High</div>
+            <h3>High Quality</h3>
+            <p>Music playback and podcast streaming</p>
+            <div class="quality-specs">
+              <span>48 kHz · Stereo · 256 kbps</span>
+              <span>~250ms buffer</span>
+            </div>
+            <div class="latency-bar"><div style="width:70%"></div></div>
+          </div>
+
+          <div class="quality-card" data-preset="STUDIO">
+            <div class="quality-badge latency-studio">🎙️ Studio</div>
+            <h3>Studio</h3>
+            <p>Maximum fidelity – highest latency</p>
+            <div class="quality-specs">
+              <span>48 kHz · Stereo · 320 kbps</span>
+              <span>~500ms buffer</span>
+            </div>
+            <div class="latency-bar"><div style="width:100%"></div></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-header"><span class="card-title">Custom Buffer Size</span></div>
+          <div class="slider-row">
+            <label>Buffer (ms)</label>
+            <input type="range" id="custom-buffer" min="10" max="1000" value="60" class="slider" />
+            <span id="custom-buffer-val">60 ms</span>
+          </div>
+          <p class="hint">Drag to override the preset buffer. Lower = faster but may crackle on slow networks.</p>
+        </div>
+      </section>
+
+      <!-- ═══ TAB: Connections ══════════════════════════════════════ -->
+      <section class="tab-panel" id="tab-connections">
+        <div class="panel-header">
+          <h2>Connections</h2>
+          <p>Manage WiFi, USB and Bluetooth connectivity</p>
+        </div>
+
+        <!-- WiFi -->
+        <div class="card conn-card">
+          <div class="conn-header">
+            <div class="conn-icon wifi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/>
+              </svg>
+            </div>
+            <div class="conn-info">
+              <strong>WiFi / LAN</strong>
+              <span class="conn-desc">Auto-discovery on local network</span>
+            </div>
+            <div class="conn-status" id="wifi-status">
+              <span class="badge badge-active">Active</span>
+            </div>
+          </div>
+          <div class="conn-details">
+            <p>The PC server broadcasts its address via UDP every 2 seconds.<br/>
+            Android app will auto-discover. Or enter IP manually in the app.</p>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Broadcast Port</span>
+                <code class="info-value">7370</code>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Control Port</span>
+                <code class="info-value">7372</code>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Audio Port</span>
+                <code class="info-value">7371</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- USB / ADB -->
+        <div class="card conn-card">
+          <div class="conn-header">
+            <div class="conn-icon usb-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                <path d="M12 2v11m0 0-3-3m3 3 3-3"/><rect x="8" y="13" width="8" height="5" rx="1"/>
+                <path d="M12 18v4"/>
+              </svg>
+            </div>
+            <div class="conn-info">
+              <strong>USB Cable (ADB)</strong>
+              <span class="conn-desc">Zero-WiFi, low-latency USB tunnel</span>
+            </div>
+            <div class="conn-status">
+              <span class="badge" id="adb-status-badge">Disabled</span>
+            </div>
+          </div>
+          <div class="conn-details">
+            <p id="adb-status-msg">Enable ADB to tunnel audio over USB. Requires Android USB Debugging enabled.</p>
+            <div class="conn-actions">
+              <button class="btn btn-secondary" id="btn-adb-toggle">Enable ADB Bridge</button>
+            </div>
+            <div class="hint-box">
+              <strong>Setup:</strong> Enable "USB Debugging" on Android (Settings → Developer Options).
+              Install <a href="#" id="link-adb">Android Platform Tools</a> on PC.
+            </div>
+          </div>
+        </div>
+
+        <!-- Bluetooth -->
+        <div class="card conn-card">
+          <div class="conn-header">
+            <div class="conn-icon bt-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/>
+              </svg>
+            </div>
+            <div class="conn-info">
+              <strong>Bluetooth</strong>
+              <span class="conn-desc">Use when not on same WiFi</span>
+            </div>
+            <div class="conn-status">
+              <span class="badge" id="bt-status-badge">Idle</span>
+            </div>
+          </div>
+          <div class="conn-details">
+            <p id="bt-status-msg">Scan for nearby Bluetooth devices. Note: Bluetooth has higher latency than WiFi/USB.</p>
+            <div class="conn-actions">
+              <button class="btn btn-secondary" id="btn-bt-scan">Scan Devices</button>
+              <button class="btn btn-danger" id="btn-bt-disconnect" style="display:none">Disconnect</button>
+            </div>
+            <div id="bt-devices-list" class="bt-devices-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ TAB: Stats ════════════════════════════════════════════ -->
+      <section class="tab-panel" id="tab-stats">
+        <div class="panel-header">
+          <h2>Statistics</h2>
+          <p>Real-time audio stream performance metrics</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-label">TX Packets/s</div>
+            <div class="stat-value" id="stat-tx">–</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📩</div>
+            <div class="stat-label">RX Packets/s</div>
+            <div class="stat-value" id="stat-rx">–</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⬆️</div>
+            <div class="stat-label">Upload</div>
+            <div class="stat-value" id="stat-tx-kb">– KB</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⬇️</div>
+            <div class="stat-label">Download</div>
+            <div class="stat-value" id="stat-rx-kb">– KB</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🎚️</div>
+            <div class="stat-label">Bitrate</div>
+            <div class="stat-value" id="stat-bitrate">–</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-label">Buffer</div>
+            <div class="stat-value" id="stat-buffer">–</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🎛️</div>
+            <div class="stat-label">Sample Rate</div>
+            <div class="stat-value" id="stat-sr">–</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🔗</div>
+            <div class="stat-label">Clients</div>
+            <div class="stat-value" id="stat-clients">0</div>
+          </div>
+        </div>
+
+        <!-- Latency Graph -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-header">
+            <span class="card-title">Latency History</span>
+            <span class="badge" id="latency-current">– ms</span>
+          </div>
+          <canvas id="latency-canvas" width="800" height="120"></canvas>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ── Notification Toast ─────────────────────────────────────────────── -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

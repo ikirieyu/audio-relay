@@ -1,0 +1,20 @@
+{
+  "name": "audio-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo root – AudioRelay PC↔Android audio bridge",
+  "scripts": {
+    "dev":          "node scripts/dev.js",
+    "start":        "node scripts/dev.js",
+    "dev:desktop":  "cd desktop && npm start",
+    "dev:mobile":   "cd mobile && npm run start",
+    "build:exe":    "cd desktop && npm run build:win",
+    "build:desktop":"cd desktop && npm run build:win",
+    "install:all":  "npm install --prefix desktop && npm install --prefix mobile",
+    "build:android":"cd mobile && npm run build && npx cap sync android"
+  },
+  "workspaces": [
+    "desktop",
+    "mobile"
+  ]
+}

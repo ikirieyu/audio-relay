@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+**/dist/
+build/
+**/build/
+out/
+**/out/
+release/
+**/release/
+*.apk
+*.aab
+*.exe
+*.dmg
+*.AppImage
+
+# Capacitor / Android
+mobile/android/
+mobile/dist/
+.gradle/
+local.properties
+
+# Environment & IDE
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/

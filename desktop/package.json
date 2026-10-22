@@ -1,0 +1,51 @@
+{
+  "name": "audio-relay-desktop",
+  "version": "1.0.0",
+  "description": "AudioRelay Desktop - Stream audio between PC and Android",
+  "main": "src/main.js",
+  "scripts": {
+    "prebuild": "node -e \"const fs = require('fs'); fs.cpSync('../shared', './src/shared', { recursive: true }); fs.cpSync('../shared', './shared', { recursive: true });\"",
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build:win": "npm run prebuild && electron-builder --win --x64",
+    "build:mac": "npm run prebuild && electron-builder --mac",
+    "build:linux": "npm run prebuild && electron-builder --linux",
+    "pack": "npm run prebuild && electron-builder --dir"
+  },
+  "author": "AudioRelay",
+  "build": {
+    "appId": "com.audiorelay.desktop",
+    "productName": "AudioRelay",
+    "copyright": "Copyright © 2024",
+    "electronVersion": "33.4.11",
+    "npmRebuild": false,
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": ["nsis", "portable"]
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.music"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "assets/icon.png",
+      "category": "Audio"
+    }
+  },
+  "dependencies": {
+    "opusscript": "^0.1.1",
+    "ws":         "^8.18.0"
+  },
+  "devDependencies": {
+    "electron":         "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "optionalDependencies": {
+    "naudiodon":     "^2.0.5",
+    "node-bluetooth": "^1.2.2"
+  }
+}

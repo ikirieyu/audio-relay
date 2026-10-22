@@ -1,0 +1,26 @@
+{
+  "appId":    "com.audiorelay.mobile",
+  "appName":  "AudioRelay",
+  "webDir":   "dist",
+  "android": {
+    "minSdkVersion":    26,
+    "targetSdkVersion": 34,
+    "buildOptions": {
+      "keystorePath":    "release.keystore",
+      "keystoreAlias":   "audiorelay",
+      "releaseType":     "APK"
+    }
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1000,
+      "backgroundColor":    "#060610",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "Dark",
+      "backgroundColor": "#060610"
+    }
+  }
+}

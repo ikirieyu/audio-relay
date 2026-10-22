@@ -1,0 +1,199 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, master]
+    tags:     ['v*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Node.js ───────────────────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      # ── Java ──────────────────────────────────────────────────────────────
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # ── Android SDK ───────────────────────────────────────────────────────
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # ── Install & Build Web App ────────────────────────────────────────────
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Build web bundle
+        working-directory: mobile
+        run: npm run build
+
+      # ── Capacitor Sync ────────────────────────────────────────────────────
+      - name: Sync Capacitor
+        working-directory: mobile
+        run: npx cap sync android
+
+      # ── Gradle Build (Debug APK) ───────────────────────────────────────────
+      - name: Build Debug APK
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      # ── Upload Debug APK ───────────────────────────────────────────────────
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioRelay-debug-${{ github.sha }}
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      # ── Release APK (on tag push) ──────────────────────────────────────────
+      - name: Build Release APK (unsigned)
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: mobile/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Sign Release APK
+        if: startsWith(github.ref, 'refs/tags/v') && env.KEYSTORE_BASE64 != ''
+        env:
+          KEYSTORE_BASE64:  ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS:    ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS:        ${{ secrets.KEY_ALIAS }}
+          KEY_PASS:         ${{ secrets.KEY_PASS }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > /tmp/release.keystore
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
+            --ks /tmp/release.keystore \
+            --ks-pass "pass:$KEYSTORE_PASS" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --key-pass "pass:$KEY_PASS" \
+            --out mobile/android/app/build/outputs/apk/release/AudioRelay-${{ github.ref_name }}.apk \
+            mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            mobile/android/app/build/outputs/apk/debug/app-debug.apk
+            mobile/android/app/build/outputs/apk/release/AudioRelay-*.apk
+          body: |
+            ## AudioRelay ${{ github.ref_name }}
+
+            ### Android APK
+            - **Debug APK**: `app-debug.apk` (for testing, no signing needed)
+            - **Release APK**: `AudioRelay-${{ github.ref_name }}.apk`
+
+            ### Installation
+            1. Enable "Install from unknown sources" on Android
+            2. Download and install the APK
+            3. Open AudioRelay on PC first, then connect from Android
+
+            ### Requirements
+            - Android 8.0 (Oreo) or later
+            - Same WiFi network as PC **or** USB cable with ADB enabled
+
+  # ── Desktop Builds ──────────────────────────────────────────────────────────
+  build-desktop-windows:
+    name: Build Windows Installer
+    runs-on: windows-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Build Windows installer
+        working-directory: desktop
+        run: npm run build:win
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioRelay-Windows-${{ github.sha }}
+          path: desktop/dist/*.exe
+          retention-days: 30
+
+  build-desktop-linux:
+    name: Build Linux AppImage
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install system dependencies
+        run: sudo apt-get install -y libasound2-dev
+
+      - name: Install dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Build Linux AppImage
+        working-directory: desktop
+        run: npm run build:linux
+
+      - name: Upload Linux build
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioRelay-Linux-${{ github.sha }}
+          path: desktop/dist/*.AppImage
+          retention-days: 30
+
+  build-desktop-mac:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Build macOS DMG
+        working-directory: desktop
+        run: npm run build:mac
+
+      - name: Upload macOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioRelay-macOS-${{ github.sha }}
+          path: desktop/dist/*.dmg
+          retention-days: 30
