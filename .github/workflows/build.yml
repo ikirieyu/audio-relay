@@ -35,7 +35,8 @@ jobs:
 
       # ── Install & Build Web App ────────────────────────────────────────────
       - name: Install dependencies
-        run: npm install --prefix mobile
+        working-directory: mobile
+        run: npm install
 
       - name: Build web bundle
         working-directory: mobile
@@ -44,7 +45,7 @@ jobs:
       # ── Capacitor Sync ────────────────────────────────────────────────────
       - name: Sync Capacitor
         working-directory: mobile
-        run: npx cap sync android
+        run: npx --package=@capacitor/cli cap sync android
 
       # ── Gradle Build (Debug APK) ───────────────────────────────────────────
       - name: Make gradlew executable
@@ -52,14 +53,14 @@ jobs:
 
       - name: Build Debug APK
         working-directory: mobile/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       # ── Upload Debug APK ───────────────────────────────────────────────────
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: AudioRelay-debug-${{ github.sha }}
-          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          path: mobile/android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
       # ── Release APK (on tag push) ──────────────────────────────────────────
