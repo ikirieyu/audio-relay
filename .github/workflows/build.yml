@@ -33,10 +33,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # ── Android SDK ───────────────────────────────────────────────────────
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       # ── Install & Build Web App ────────────────────────────────────────────
       - name: Install dependencies
         run: npm install
