@@ -1,4 +1,7 @@
-name: Build Android APK
+name: Build AudioRelay Multiplatform
+
+permissions:
+  contents: write
 
 on:
   push:
@@ -90,6 +93,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          fail_on_unmatched_files: false
           files: |
             mobile/android/app/build/outputs/apk/debug/app-debug.apk
             mobile/android/app/build/outputs/apk/release/AudioRelay-*.apk
@@ -151,7 +155,9 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install system dependencies
-        run: sudo apt-get install -y libasound2-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libfuse2 || sudo apt-get install -y libasound2-dev libfuse2t64
 
       - name: Install dependencies
         run: npm install
@@ -164,7 +170,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AudioRelay-Linux-${{ github.sha }}
-          path: desktop/dist/*.AppImage
+          path: |
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
           retention-days: 30
 
   build-desktop-mac:
