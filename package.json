@@ -10,6 +10,8 @@
     "dev:mobile":   "cd mobile && npm run start",
     "build:exe":    "cd desktop && npm run build:win",
     "build:desktop":"cd desktop && npm run build:win",
+    "build:linux":  "cd desktop && npm run build:linux",
+    "build:mac":    "cd desktop && npm run build:mac",
     "install:all":  "npm install --prefix desktop && npm install --prefix mobile",
     "build:android":"cd mobile && npm run build && npx cap sync android"
   },

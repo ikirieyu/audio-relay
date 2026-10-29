@@ -152,12 +152,60 @@ $bw.Close()
 $fs.Close()
 Write-Host "Created $icoPath successfully!"
 
+# macOS icon.icns generation (ic08 = 256x256, ic09 = 512x512, ic10 = 1024x1024)
+$icnsPath = Join-Path $desktopAssets "icon.icns"
+$bmp256 = Resize-Image $src 256 256
+$bmp512 = Resize-Image $src 512 512
+$bmp1024 = Resize-Image $src 1024 1024
+
+$png256 = Get-PngBytes $bmp256
+$png512 = Get-PngBytes $bmp512
+$png1024 = Get-PngBytes $bmp1024
+
+$bmp256.Dispose()
+$bmp512.Dispose()
+$bmp1024.Dispose()
+
+function Write-BE32($writer, [uint32]$val) {
+    $b = [System.BitConverter]::GetBytes($val)
+    if ([System.BitConverter]::IsLittleEndian) { [Array]::Reverse($b) }
+    $writer.Write($b)
+}
+
+$chunk256Len = 8 + $png256.Length
+$chunk512Len = 8 + $png512.Length
+$chunk1024Len = 8 + $png1024.Length
+$totalLen = 8 + $chunk256Len + $chunk512Len + $chunk1024Len
+
+$icnsFs = [System.IO.File]::Create($icnsPath)
+$icnsBw = New-Object System.IO.BinaryWriter($icnsFs)
+
+$icnsBw.Write([System.Text.Encoding]::ASCII.GetBytes("icns"))
+Write-BE32 $icnsBw $totalLen
+
+    $icnsBw.Write([System.Text.Encoding]::ASCII.GetBytes("ic08"))
+    Write-BE32 $icnsBw $chunk256Len
+    $icnsBw.Write([byte[]]$png256, 0, $png256.Length)
+    
+    $icnsBw.Write([System.Text.Encoding]::ASCII.GetBytes("ic09"))
+    Write-BE32 $icnsBw $chunk512Len
+    $icnsBw.Write([byte[]]$png512, 0, $png512.Length)
+    
+    $icnsBw.Write([System.Text.Encoding]::ASCII.GetBytes("ic10"))
+    Write-BE32 $icnsBw $chunk1024Len
+    $icnsBw.Write([byte[]]$png1024, 0, $png1024.Length)
+
+$icnsBw.Close()
+$icnsFs.Close()
+Write-Host "Created $icnsPath successfully!"
+
 # Also copy to root build/ if needed by electron-builder default
 $desktopBuild = Join-Path $root "desktop\build"
 if (-not (Test-Path $desktopBuild)) {
     New-Item -ItemType Directory -Path $desktopBuild -Force | Out-Null
 }
 Copy-Item $icoPath (Join-Path $desktopBuild "icon.ico") -Force
+Copy-Item $icnsPath (Join-Path $desktopBuild "icon.icns") -Force
 Copy-Item (Join-Path $desktopAssets "icon.png") (Join-Path $desktopBuild "icon.png") -Force
 
 # ─────────────────────────────────────────────────────────────────────────────
