@@ -12,7 +12,8 @@
     "build:linux": "npm run prebuild && electron-builder --linux",
     "pack": "npm run prebuild && electron-builder --dir"
   },
-  "author": "AudioRelay",
+  "author": "AudioRelay <audiorelay@ikirieyu.dev>",
+  "homepage": "https://github.com/ikirieyu/audio-relay",
   "build": {
     "appId": "com.audiorelay.desktop",
     "productName": "AudioRelay",
@@ -44,7 +45,8 @@
     "linux": {
       "target": ["AppImage", "deb"],
       "icon": "assets/icon.png",
-      "category": "Audio"
+      "category": "Audio",
+      "maintainer": "AudioRelay <audiorelay@ikirieyu.dev>"
     }
   },
   "dependencies": {
