@@ -2,6 +2,10 @@
   "appId":    "com.audiorelay.mobile",
   "appName":  "AudioRelay",
   "webDir":   "dist",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
   "android": {
     "minSdkVersion":    26,
     "targetSdkVersion": 34,
@@ -14,13 +18,13 @@
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 1000,
-      "backgroundColor":    "#060610",
+      "backgroundColor":    "#0C131E",
       "androidSplashResourceName": "splash",
       "showSpinner": false
     },
     "StatusBar": {
       "style": "Dark",
-      "backgroundColor": "#060610"
+      "backgroundColor": "#0C131E"
     }
   }
 }

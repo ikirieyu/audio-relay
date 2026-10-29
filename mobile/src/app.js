@@ -12,13 +12,28 @@ import { MobileAudioEngine } from './audio-engine.js';
 import { NetworkClient }     from './network-client.js';
 import { QUALITY_PRESET }    from '../../shared/protocol-browser.js';
 
-// Try to load OpusScript
-let OpusScript;
-try {
-  OpusScript = (await import('opusscript')).default;
-} catch {
-  console.warn('[App] opusscript not available – running in pass-through mode');
+// Buffer polyfill for browser (required by opusscript)
+if (typeof window !== 'undefined' && typeof window.Buffer === 'undefined') {
+  window.Buffer = {
+    from: (arr) => (arr instanceof Uint8Array ? arr : new Uint8Array(arr)),
+  };
 }
+
+// Lazy OpusScript loader (does not block UI rendering)
+let OpusScript = null;
+async function loadOpusScript() {
+  if (OpusScript) return OpusScript;
+  try {
+    const mod = await import('opusscript');
+    OpusScript = mod.default || mod;
+    console.log('[App] opusscript loaded successfully');
+  } catch (e) {
+    console.warn('[App] opusscript not available – running in pass-through mode', e);
+    OpusScript = null;
+  }
+  return OpusScript;
+}
+loadOpusScript();
 
 // ─── App State ────────────────────────────────────────────────────────────────
 const state = {
@@ -35,13 +50,33 @@ const audio   = new MobileAudioEngine();
 const network = new NetworkClient();
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  renderApp();
-});
+function boot() {
+  try {
+    renderApp();
+  } catch (err) {
+    console.error('[App] renderApp failed:', err);
+    document.body.innerHTML = `
+      <div style="padding:24px;color:#ff4444;font-family:sans-serif;background:#060610;min-height:100vh;">
+        <h2>Failed to render app</h2>
+        <pre style="white-space:pre-wrap;background:#111;padding:12px;border-radius:8px;">${err?.stack || err}</pre>
+      </div>`;
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
 
 // ─── Render ───────────────────────────────────────────────────────────────────
 function renderApp() {
-  document.body.innerHTML = getAppHTML();
+  const root = document.getElementById('root');
+  if (root) {
+    root.innerHTML = getAppHTML();
+  } else {
+    document.body.innerHTML = getAppHTML();
+  }
   attachEvents();
   loadSavedIP();
 }
@@ -52,7 +87,7 @@ function getAppHTML() {
     <!-- Header -->
     <header class="app-header">
       <div class="logo">
-        <div class="logo-mark">🎙️</div>
+        <img class="logo-mark" src="logo.png" alt="AudioRelay" style="object-fit:cover;padding:2px;" />
         <div>
           <div class="logo-title">AudioRelay</div>
           <div class="logo-sub">PC ↔ Android Bridge</div>
@@ -260,14 +295,21 @@ async function handleStreamToggle() {
 }
 
 async function buildCodecs() {
-  if (!OpusScript) return;
   const p = QUALITY_PRESET[state.preset];
-  state.encoder = new OpusScript(p.sampleRate, p.channels, OpusScript.Application.AUDIO);
-  state.encoder.setBitrate(p.bitrate);
-  state.decoder = new OpusScript(p.sampleRate, p.channels, OpusScript.Application.AUDIO);
-
-  // Hook audio engine to network
   await audio.init(p);
+
+  const Opus = await loadOpusScript();
+  if (Opus) {
+    try {
+      state.encoder = new Opus(p.sampleRate, p.channels, Opus.Application.AUDIO, { wasm: false });
+      state.encoder.setBitrate(p.bitrate);
+      state.decoder = new Opus(p.sampleRate, p.channels, Opus.Application.AUDIO, { wasm: false });
+    } catch (e) {
+      console.warn('[App] Opus init error:', e);
+      state.encoder = null;
+      state.decoder = null;
+    }
+  }
 
   if (state.direction !== 'pc_to_android') {
     await audio.startCapture((pcmInt16) => {
@@ -276,7 +318,9 @@ async function buildCodecs() {
         const frameSamples = (p.sampleRate * p.frameMs) / 1000;
         const encoded = state.encoder.encode(pcmInt16, frameSamples);
         network.sendAudioFrame(encoded);
-      } catch {}
+      } catch (err) {
+        console.warn('[Audio] Encode error:', err);
+      }
     });
   }
 
@@ -290,7 +334,9 @@ async function buildCodecs() {
         const f32 = new Float32Array(pcm.length);
         for (let i = 0; i < pcm.length; i++) f32[i] = pcm[i] / 32768;
         audio.feedPCM(f32);
-      } catch {}
+      } catch (err) {
+        console.warn('[Audio] Decode error:', err);
+      }
     });
   }
 }
@@ -424,10 +470,14 @@ function applyModeHint(mode) {
 }
 
 function loadSavedIP() {
-  const saved = localStorage.getItem('lastIP');
-  if (saved) {
-    const el = document.getElementById('ip-input');
-    if (el) el.value = saved;
+  try {
+    const saved = localStorage.getItem('lastIP');
+    if (saved) {
+      const el = document.getElementById('ip-input');
+      if (el) el.value = saved;
+    }
+  } catch (e) {
+    console.warn('[App] localStorage error:', e);
   }
 }
 
